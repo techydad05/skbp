@@ -35,6 +35,7 @@ export const todos = createTodoStore();
 
 // Theme store
 export const currentTheme = writable<string>('skeleton');
+export const isDarkMode = writable<boolean>(false);
 
 export const techDetails = writable<Record<string, TechDetail>>({
     'SvelteKit': {

@@ -3,7 +3,8 @@
 	import { browser } from '$app/environment';
 	import { Palette, Sun, Moon, ChevronDown } from 'lucide-svelte';
 	import { popup, type PopupSettings, LightSwitch, ProgressBar } from '@skeletonlabs/skeleton';
-	import { currentTheme } from '$lib/stores/appStore';
+	import { currentTheme, isDarkMode } from '$lib/stores/appStore';
+    import LoadingScreen from './LoadingScreen.svelte';
 
 	export let inDrawer = false;
 
@@ -24,7 +25,7 @@
 
 	// Set default theme for SSR
 	$currentTheme = 'skeleton';
-	let isDark = false;
+    let showLoading = false;
 
 	let popupSettings: PopupSettings = {
 		event: 'click',
@@ -32,44 +33,54 @@
 		placement: inDrawer ? 'bottom-start' : 'bottom-end'
 	};
 
-	function setTheme(theme: string) {
+	async function setTheme(theme: string) {
+        showLoading = true;
 		if (!browser) return;
-		
+
 		$currentTheme = theme;
-		const mode = isDark ? 'dark' : 'light';
 		document.body.setAttribute('data-theme', theme);
-		document.documentElement.classList.toggle('dark', isDark);
 		localStorage.setItem('theme', theme);
-		localStorage.setItem('mode', mode);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        showLoading = false;
 	}
 
 	function toggleMode() {
-		isDark = !isDark;
-		setTheme($currentTheme);
+		$isDarkMode = !$isDarkMode;
+		const mode = $isDarkMode ? 'dark' : 'light';
+		document.documentElement.classList.remove('dark', 'light');
+		document.documentElement.classList.add(mode);
+		localStorage.setItem('mode', mode);
 	}
 
 	onMount(() => {
+        showLoading = true;
 		if (!browser) return;
 
 		const savedTheme = localStorage.getItem('theme');
 		const savedMode = localStorage.getItem('mode');
-		
+
 		if (savedTheme) {
 			$currentTheme = savedTheme;
+			document.body.setAttribute('data-theme', savedTheme);
 		}
-		
+
 		if (savedMode) {
-			isDark = savedMode === 'dark';
+			$isDarkMode = savedMode === 'dark';
+			document.documentElement.classList.remove('dark', 'light');
+			document.documentElement.classList.add(savedMode);
 		} else {
-			isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+			const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+			$isDarkMode = prefersDark;
+			document.documentElement.classList.add(prefersDark ? 'dark' : 'light');
 		}
-		
-		setTheme($currentTheme);
+        showLoading = false;
 	});
 </script>
 
+<LoadingScreen show={showLoading} />
+
 <!-- Theme -->
-<div>
+<div style={`opacity: ${showLoading ? 0 : 1}`}>
 	<!-- trigger -->
 	<button class="btn hover:variant-soft-primary" use:popup={popupSettings}>
 		<svelte:component this={Palette} class="h-4 w-4" />
@@ -82,14 +93,14 @@
 			{#if browser}
 				<section class="flex items-center justify-between">
 					<h6 class="h6">Mode</h6>
-					<LightSwitch />
+					<LightSwitch bind:checked={$isDarkMode} on:change={toggleMode} />
 				</section>
 				<section class="space-y-2">
 					<h6 class="h6">Theme</h6>
-					<div class="grid grid-cols-2 gap-2">
+					<div class="grid gap-2">
 						{#each themes as theme}
 							<button
-								class="btn variant-soft {$currentTheme === theme.type ? 'variant-filled-primary' : ''}"
+								class="btn variant-soft {$currentTheme === theme.type ? 'variant-filled-primary' : ''} w-full"
 								on:click={() => setTheme(theme.type)}
 							>
 								<span>{theme.icon}</span>
@@ -107,7 +118,6 @@
 	[data-popup='themePopup'],
 	[data-popup='drawerThemePopup'] {
 		position: absolute;
-		z-index: 50;
 	}
 	.arrow {
 		position: absolute;
