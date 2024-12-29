@@ -9,34 +9,51 @@
 	import ThemeSwitcher from '$lib/components/ThemeSwitcher.svelte';
 	import AuthModal from '$lib/components/auth/AuthModal.svelte';
 	import { showAuthModal, authMode, currentUser, setUser } from '$lib/stores/authStore';
+	import { menuStore } from '$lib/stores/menuStore';
+	import { EasterEggHandler } from '$lib/utils/easterEgg';
 	import { onMount } from 'svelte';
 	import type { ModalSettings } from '@skeletonlabs/skeleton';
 
-	let clickCount = 0;
-	let clickTimer: ReturnType<typeof setTimeout> | undefined;
+	// Props
+	let { data } = $props();
+
+	// Initialize stores and handlers
+	initializeStores();
+	const drawerStore = getDrawerStore();
+	const modalStore = getModalStore();
+	
+	// Easter egg state
 	let showEasterEgg = false;
 	let clickX = 0;
 	let clickY = 0;
-	let logoElement: HTMLElement | undefined;
-	const drawerStore = getDrawerStore();
-	const modalStore = getModalStore();
+	
+	// Initialize easter egg handler with configuration
+	const easterEggHandler = new EasterEggHandler({
+		requiredClicks: 6,
+		timeWindow: 500,
+		cardDimensions: { width: 192, height: 100 }
+	});
+
+	// Drawer controls
 	const openDrawer = () => drawerStore.open();
 	const closeDrawer = () => drawerStore.close();
 
-	// User menu popup
+	// User menu element reference
 	let userMenuTrigger: HTMLElement | undefined;
-	let userMenuOpen = false;
-
-	function toggleUserMenu() {
-		userMenuOpen = !userMenuOpen;
-	}
 
 	// Close menu when clicking outside
 	function handleClickOutside(event: MouseEvent) {
-		if (userMenuOpen && userMenuTrigger && !userMenuTrigger.contains(event.target as Node)) {
-			userMenuOpen = false;
+		if ($menuStore.userMenuOpen && userMenuTrigger && !userMenuTrigger.contains(event.target as Node)) {
+			menuStore.closeUserMenu();
 		}
 	}
+
+	// Watch for changes in data.user and update the user state
+	$effect(() => {
+		if (data?.user) {
+			setUser(data.user);
+		}
+	});
 
 	onMount(() => {
 		document.addEventListener('click', handleClickOutside);
@@ -46,38 +63,12 @@
 	});
 
 	function handleLogoClick(event: MouseEvent) {
-		clickCount++;
-		if (clickTimer) clearTimeout(clickTimer); // Clear existing timer
-
-		if (clickCount === 6) {
-			// 3 double-clicks = 6 clicks
-			clickCount = 0;
-			const viewportWidth = window.innerWidth;
-			const viewportHeight = window.innerHeight;
-			const cardWidth = 192; // card width is 48 * 4 (w-48)
-			const cardHeight = 100; // approximate height of the card
-
-			clickX = event.clientX;
-			clickY = event.clientY;
-
-			// Keep the card within the viewport
-			if (clickX + cardWidth / 2 > viewportWidth) {
-				clickX = viewportWidth - cardWidth / 2;
-			} else if (clickX - cardWidth / 2 < 0) {
-				clickX = cardWidth / 2;
-			}
-
-			if (clickY + cardHeight > viewportHeight) {
-				clickY = viewportHeight - cardHeight;
-			}
-
+		const result = easterEggHandler.handleClick(event);
+		if (result.triggered && result.position) {
+			clickX = result.position.x;
+			clickY = result.position.y;
 			showEasterEgg = true;
 		}
-
-		// Reset click count after 500ms
-		clickTimer = setTimeout(() => {
-			clickCount = 0;
-		}, 500);
 	}
 
 	function handleChoice(choice: boolean) {
@@ -85,32 +76,18 @@
 		if (choice) {
 			const settings: ModalSettings = {
 				type: 'component',
-				component: 'ballMazeModal', // Assuming this string refers to a valid component.
+				component: 'ballMazeModal',
 				title: '🎮 Ball Maze Game'
 			};
 			modalStore.trigger(settings);
 		}
 	}
 
-	initializeStores();
-
 	function openAuth() {
 		authMode.set('login');
 		showAuthModal.set(true);
 	}
 
-	export let data: any; // Or import('./$types').PageData if the error is resolved.
-
-	// Initialize client-side state from server data
-	onMount(() => {
-		if (data?.user) {
-			setUser(data.user);
-		}
-	});
-
-	$: if (data?.user) {
-		setUser(data.user);
-	}
 </script>
 
 <!-- Header -->
@@ -123,7 +100,6 @@
 				on:click={handleLogoClick}
 				role="button"
 				tabindex="0"
-				bind:this={logoElement}
 			>
 				<span class="relative text-6xl font-black text-primary-500">
 					S
@@ -153,7 +129,7 @@
 				<div class="relative flex items-center space-x-2">
 					<button
 						class="variant-ghost-surface btn btn-sm flex items-center gap-2"
-						on:click={toggleUserMenu}
+						on:click={() => menuStore.toggleUserMenu()}
 						bind:this={userMenuTrigger}
 					>
 						<span class="text-sm">{$currentUser?.username || data.user.username}</span>
@@ -167,7 +143,7 @@
 						</svg>
 					</button>
 
-					{#if userMenuOpen}
+					{#if $menuStore.userMenuOpen}
 						<div
 							class="bg-surface-100-800-token absolute right-0 top-full z-50 mt-2 w-48 rounded-md shadow-lg ring-1 ring-black ring-opacity-5"
 						>

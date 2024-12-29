@@ -12,7 +12,7 @@
 	storePopup.set({ computePosition, autoUpdate, flip, shift, offset, arrow });
 	initializeStores();
 
-	let { children } = $props();
+	let { children, data } = $props();
 
 	onMount(() => {
 		const savedTheme = localStorage.getItem('theme');
@@ -30,7 +30,8 @@
 
 	const modalRegistry = {
 		ballMazeModal: {
-			ref: BallMazeModal
+			ref: BallMazeModal,
+			data: {}
 		}
 	};
 </script>
@@ -38,7 +39,7 @@
 <Modal components={modalRegistry} />
 <AppShell slotSidebarLeft="bg-surface-500/5 w-0 lg:w-64">
 	<svelte:fragment slot="header">
-		<Header />
+		<Header {data} />
 	</svelte:fragment>
 	<div class="container mx-auto px-4">
 		{@render children()}

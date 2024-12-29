@@ -1,38 +1,67 @@
-# sv
+# Svelte Application
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A modern web application built with SvelteKit, featuring authentication, theme switching, and interactive features.
 
-## Creating a project
+## Project Structure
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```bash
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
+```
+src/
+├── lib/
+│   ├── components/     # Reusable UI components
+│   │   ├── auth/      # Authentication-related components
+│   │   └── ...
+│   ├── stores/        # Svelte stores for state management
+│   ├── utils/         # Utility functions and helpers
+│   └── server/        # Server-side code
+├── routes/            # SvelteKit routes
+└── app.html           # Main app template
 ```
 
-## Developing
+## Recent Refactoring Changes
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+1. **State Management Improvements**
+   - Introduced `menuStore.ts` for centralized menu state management
+   - Moved user menu logic out of components into dedicated store
+
+2. **Code Organization**
+   - Created `utils/easterEgg.ts` for easter egg functionality
+   - Improved TypeScript typing and documentation
+   - Simplified component logic by extracting complex functionality
+
+3. **Component Cleanup**
+   - Removed redundant state management from Header component
+   - Improved code readability with better organization and comments
+   - Centralized store initialization
+
+## Development
 
 ```bash
-npm run dev
+# Install dependencies
+pnpm install
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+# Start development server
+pnpm dev
+
+# Build for production
+pnpm build
 ```
 
-## Building
+## TypeScript Usage
 
-To create a production version of your app:
+TypeScript is used selectively where it provides the most value:
+- Complex state management (stores)
+- Utility functions with complex logic
+- Component props with specific requirements
 
-```bash
-npm run build
-```
+TypeScript files are heavily commented to help JavaScript developers understand the type system and its benefits.
 
-You can preview the production build with `npm run preview`.
+## Contributing
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+1. Create a feature branch
+2. Make your changes
+3. Run tests: `pnpm test`
+4. Submit a pull request
+
+## License
+
+MIT
